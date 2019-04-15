@@ -78,15 +78,13 @@ def test_system_info(elasticapm_client):
         mocked.return_value = {}
         system_info = elasticapm_client.get_system_info()
     assert {"hostname", "architecture", "platform"} == set(system_info.keys())
+    assert system_info["hostname"] == "foo"
 
 
 def test_docker_kubernetes_system_info(elasticapm_client):
     # mock docker/kubernetes data here to get consistent behavior if test is run in docker
-    with mock.patch("elasticapm.utils.cgroup.get_cgroup_container_metadata") as mock_metadata, mock.patch(
-        "socket.gethostname"
-    ) as mock_gethostname:
+    with mock.patch("elasticapm.utils.cgroup.get_cgroup_container_metadata") as mock_metadata:
         mock_metadata.return_value = {"container": {"id": "123"}, "kubernetes": {"pod": {"uid": "456"}}}
-        mock_gethostname.return_value = "foo"
         system_info = elasticapm_client.get_system_info()
     assert system_info["container"] == {"id": "123"}
     assert system_info["kubernetes"] == {"pod": {"uid": "456", "name": "foo"}}
@@ -147,7 +145,7 @@ def test_docker_kubernetes_system_info_from_environ_overrides_cgroups():
 @mock.patch.dict("os.environ", {"KUBERNETES_NAMESPACE": "namespace"})
 def test_docker_kubernetes_system_info_except_hostname_from_environ():
     # initialize agent only after overriding environment
-    elasticapm_client = TempStoreClient(metrics_interval="0ms")
+    elasticapm_client = TempStoreClient(metrics_interval="0ms", hostname="foo")
     # mock docker/kubernetes data here to get consistent behavior if test is run in docker
     with mock.patch("elasticapm.utils.cgroup.get_cgroup_container_metadata") as mock_metadata, mock.patch(
         "socket.gethostname"
